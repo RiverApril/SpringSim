@@ -91,6 +91,9 @@
         var wp = w*pixelsPerMeter;
         var hp = h*pixelsPerMeter;
 
+        weight.name = name;
+        weight.color = color;
+        weight.hideMass = hideMass;
 
         //bottom:
         rect.graphics.beginFill(color).de(-wp/2, hp/2-weightDepth*wp, wp, weightDepth*wp*2).endFill();
@@ -278,6 +281,9 @@
           numR.y = height-i;
           stage.addChild(numR);
         }
+        for (var i = 0; i <= height; i += pixelsPerMeter/100*1) {
+          grid.graphics.mt(0, i).lt(20, i);
+        }
         stage.addChild(grid);
 
         setupWeightsAndSprings();
@@ -309,21 +315,92 @@
 
       function setupWeightsAndSprings(){
 
-        //           createSpring(springConst, dampingCoef, x, y, relaxedLength)
-        springs.push(createSpring(100, 2, .1, 0, 0.05));
+        var raw = getParameterByName("state");
+        var state = null;
+        if(raw != null){
+          state = JSON.parse(atob(raw));
+        }
 
-        var xs = 0.03;
-        var x = 0.1-xs;
-        //           createCylinderWeight(mass, density, WHRatio, x, y, text, hideMass, color)
-        weights.push(createCylinderWeight(0.02, densityOfSteel, 0.7, x+=xs, 1, "", false, colorWeightBlue));
-        weights.push(createCylinderWeight(0.05, densityOfSteel, 0.7, x+=xs, 1, "", false, colorWeightRed));
-        weights.push(createCylinderWeight(0.1, densityOfSteel, 0.7, x+=xs, 1, "", false, colorWeightMagenta));
-        weights.push(createCylinderWeight(0.25, densityOfSteel, 0.7, x+=xs, 1, "", false, colorWeightYellow));
-        weights.push(createCylinderWeight(0.5, densityOfSteel, 0.7, x+=xs, 1, "", false, colorWeightLightGray));
-        weights.push(createCylinderWeight(0.75, densityOfSteel, 0.7, x+=xs, 1, "", false, colorWeightLightGray));
-        weights.push(createCylinderWeight(1.0, densityOfSteel, 0.7, x+=xs, 1, "", false, colorWeightLightGray));
-        weights.push(createCylinderWeight(0.3, densityOfAluminium, 0.7, x+=xs, 1, "?", true, colorWeightGreen));
+        if(state != null){
+
+          loadFromState(state);
+
+        }else{ // Load default playground
+
+          //           createSpring(springConst, dampingCoef, x, y, relaxedLength)
+          springs.push(createSpring(100, 2, .1, 0, 0.05));
+
+          var xs = 0.03;
+          var x = 0.1-xs;
+          //           createCylinderWeight(mass, density, WHRatio, x, y, text, hideMass, color)
+          weights.push(createCylinderWeight(0.02, densityOfSteel, 0.7, x+=xs, 1, "", false, colorWeightBlue));
+          weights.push(createCylinderWeight(0.05, densityOfSteel, 0.7, x+=xs, 1, "", false, colorWeightRed));
+          weights.push(createCylinderWeight(0.1, densityOfSteel, 0.7, x+=xs, 1, "", false, colorWeightMagenta));
+          weights.push(createCylinderWeight(0.25, densityOfSteel, 0.7, x+=xs, 1, "", false, colorWeightYellow));
+          weights.push(createCylinderWeight(0.5, densityOfSteel, 0.7, x+=xs, 1, "", false, colorWeightLightGray));
+          weights.push(createCylinderWeight(0.75, densityOfSteel, 0.7, x+=xs, 1, "", false, colorWeightLightGray));
+          weights.push(createCylinderWeight(1.0, densityOfSteel, 0.7, x+=xs, 1, "", false, colorWeightLightGray));
+          weights.push(createCylinderWeight(0.3, densityOfAluminium, 0.7, x+=xs, 1, "?", true, colorWeightGreen));
+
+        }
       }
+
+      function save(){
+        var code = btoa(JSON.stringify(saveToState()));
+        console.log(code);
+        //todo
+      }
+
+      // Parse URL parameter by name
+      function getParameterByName(name, url) {
+          if (!url) url = window.location.search;
+          name = name.replace(/[\[\]]/g, "\\$&");
+          var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+          results = regex.exec(url);
+          if (!results) return null;
+          if (!results[2]) return '';
+          return decodeURIComponent(results[2].replace(/\+/g, " "));
+      }
+
+      function saveToState(){
+        var state = {};
+        state.w = [];
+        state.s = [];
+        for(var i = 0; i < weights.length; i++){
+          var sw = {};
+          sw.n = weights[i].name;
+          sw.c = weights[i].color;
+          sw.hm = weights[i].hideMass;
+          sw.x = weights[i].x / pixelsPerMeter;
+          sw.y = weights[i].newton.position;
+          sw.w = weights[i].w2*2 / pixelsPerMeter;
+          sw.h = weights[i].h2*2 / pixelsPerMeter;
+          sw.m = weights[i].newton.mass;
+          state.w.push(sw);
+        }
+        for(var i = 0; i < springs.length; i++){
+          var ss = {};
+          ss.k = springs[i].newton.springConstant;
+          ss.d = springs[i].newton.dampingCoef;
+          ss.l = springs[i].newton.relaxedLength;
+          ss.x = springs[i].x / pixelsPerMeter;
+          ss.y = springs[i].y / pixelsPerMeter;
+          state.s.push(ss);
+        }
+        return state;
+      }
+
+      function loadFromState(state){
+        for(var i = 0; i < state.w.length; i++){
+          var sw = state.w[i];
+          weights.push(createWeight(sw.m, sw.x, sw.y, sw.w, sw.h, sw.n, sw.hm, sw.c));
+        }
+        for(var i = 0; i < state.s.length; i++){
+          var ss = state.s[i];
+          springs.push(createSpring(ss.k, ss.d, ss.x, ss.y, ss.l));
+        }
+      }
+
 
     </script>
   </head>
