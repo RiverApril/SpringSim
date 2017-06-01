@@ -261,6 +261,8 @@
 
         stage = new createjs.Stage("mainCanvas");
 
+        createjs.Touch.enable(stage);
+
         width = stage.canvas.width;
         height = stage.canvas.height-20;
 
