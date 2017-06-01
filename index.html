@@ -58,8 +58,7 @@
           evt.currentTarget.x = evt.stageX + evt.currentTarget.offset.x;
           evt.currentTarget.y = evt.stageY + evt.currentTarget.offset.y;
           if(evt.currentTarget.newton){
-            evt.currentTarget.newton.position.x = evt.currentTarget.x / pixelsPerMeter;
-            evt.currentTarget.newton.position.y = evt.currentTarget.y / pixelsPerMeter;
+            evt.currentTarget.newton.position = evt.currentTarget.y / pixelsPerMeter;
           }
           evt.currentTarget.beingDragged = true;
 
@@ -139,11 +138,11 @@
         weight.newton.mass = mass;
 
         weight.newton.forces = {};
-        weight.newton.velocity = {x:0, y:0};
-        weight.newton.position = {x:x, y:y};
+        weight.newton.velocity = 0;
+        weight.newton.position = y;
 
-        weight.newton.forces.gravity = {enabled: true, x:0, y:(mass*gravityAcc)};
-        weight.newton.forces.spring = {enabled: false, x:0, y:0};
+        weight.newton.forces.gravity = (mass*gravityAcc);
+        weight.newton.forces.spring = 0;
 
         enableDragging(weight);
         stage.addChild(weight);
@@ -164,31 +163,25 @@
 
       function updateWeight(weight, delta){
 
-        var v = weight.newton.velocity.y;
+        var v = weight.newton.velocity;
         var r = weight.w2 / pixelsPerMeter;
 
-        var netForce = {x:0, y:0};
+        var netForce = 0;
 
         for (var forceKey in weight.newton.forces) {
-          if(weight.newton.forces[forceKey].enabled){
-            netForce.x += weight.newton.forces[forceKey].x;
-            netForce.y += weight.newton.forces[forceKey].y;
-          }
+          netForce += weight.newton.forces[forceKey];
         }
 
-        weight.newton.velocity.x += (netForce.x / weight.newton.mass) * delta;
-        weight.newton.velocity.y += (netForce.y / weight.newton.mass) * delta;
+        weight.newton.velocity += (netForce / weight.newton.mass) * delta;
 
-        weight.newton.position.x += (weight.newton.velocity.x) * delta;
-        weight.newton.position.y += (weight.newton.velocity.y) * delta;
+        weight.newton.position += (weight.newton.velocity) * delta;
 
-        if(!weight.newton.forces.spring.enabled && weight.newton.position.y * pixelsPerMeter + weight.h2 >= height){
-          weight.newton.position.y = (height - weight.h2) / pixelsPerMeter;
-          weight.newton.velocity.y = 0;
+        if(weight.newton.forces.spring == 0 && weight.newton.position * pixelsPerMeter + weight.h2 >= height){
+          weight.newton.position = (height - weight.h2) / pixelsPerMeter;
+          weight.newton.velocity = 0;
         }
 
-        weight.x = weight.newton.position.x * pixelsPerMeter;
-        weight.y = weight.newton.position.y * pixelsPerMeter;
+        weight.y = weight.newton.position * pixelsPerMeter;
 
       }
 
@@ -220,14 +213,13 @@
       function updateSpring(spring, delta){
 
         if(spring.newton.attached){
-          spring.newton.attached.newton.forces.spring.enabled = true;
           spring.bottomBit.y = spring.newton.attached.y + spring.newton.attached.hookOffset;
 
-          console.log(spring.newton.dampingCoef*spring.newton.dampingCoef-(4*spring.newton.attached.newton.mass*spring.newton.springConstant));
+          //console.log(spring.newton.dampingCoef*spring.newton.dampingCoef-(4*spring.newton.attached.newton.mass*spring.newton.springConstant));
 
           
           var displacement = (spring.bottomBit.y - spring.newton.relaxedLength * pixelsPerMeter) / pixelsPerMeter;
-          spring.newton.attached.newton.forces.spring.y = -displacement * spring.newton.springConstant - (spring.newton.dampingCoef*2*spring.newton.attached.newton.mass) * spring.newton.attached.newton.velocity.y;
+          spring.newton.attached.newton.forces.spring = -displacement * spring.newton.springConstant - (spring.newton.dampingCoef*2*spring.newton.attached.newton.mass) * spring.newton.attached.newton.velocity;
 
           if(Math.abs(spring.x - spring.newton.attached.x) > attachDistance){
             detachFromSpring(spring);
@@ -249,11 +241,10 @@
 
       function attachToSpring(weight, spring){
         spring.newton.attached = weight;
-        spring.newton.attached.newton.forces.spring.enabled = true;
       }
 
       function detachFromSpring(spring){
-        spring.newton.attached.newton.forces.spring.enabled = false;
+        spring.newton.attached.newton.forces.spring = 0;
         spring.newton.attached = null;
       }
       
