@@ -27,11 +27,12 @@
       var weightDepth = 0.2;
       var weightHookSize = 0.3;
 
-      var gridColorMain = "#A0A0A0";
-      var gridColorSub = "#F0F0F0";
+      var gridColorMain = "#404040";
+      var gridColorSub = "#808080";
 
       var colorSpring = "#808080";
       var colorSpringHook = "#FF8080";
+      var colorSpringHookLine = "#FF8080";
 
       var colorWeightOutline = "#000000";
       var colorWeightText = "#000000";
@@ -193,6 +194,7 @@
         spring.topBit = new createjs.Shape();
         spring.bottomBit = new createjs.Shape();
         spring.bottomBit.graphics.beginStroke(colorSpringHook).setStrokeStyle(3, "round").mt(-attachDistance, 0).lt(attachDistance, 0).endStroke();
+        spring.bottomBit.graphics.beginStroke(colorSpringHookLine).setStrokeStyle(1, "round").mt(-x * pixelsPerMeter, 0).lt(-attachDistance, 0).endStroke();
 
         spring.x = x * pixelsPerMeter;
         spring.y = topY * pixelsPerMeter;
@@ -250,16 +252,8 @@
         spring.newton.attached.newton.forces.spring = 0;
         spring.newton.attached = null;
       }
-      
-      function init(){
 
-        stage = new createjs.Stage("mainCanvas");
-
-        createjs.Touch.enable(stage);
-
-        width = stage.canvas.width;
-        height = stage.canvas.height-20;
-
+      function setupGrid(){
         var grid = new createjs.Shape();
         for (var i = 0; i <= height; i += pixelsPerMeter) {
           grid.graphics.mt(0, i).lt(width, i);
@@ -285,14 +279,25 @@
           grid.graphics.mt(0, i).lt(20, i);
         }
         stage.addChild(grid);
+        stage.setChildIndex(grid,0);
+      }
+      
+      function init(){
+
+        stage = new createjs.Stage("mainCanvas");
+
+        createjs.Touch.enable(stage);
+
+        width = stage.canvas.width;
+        height = stage.canvas.height-20;
 
         setupWeightsAndSprings();
+
+        setupGrid();
 
         createjs.Ticker.setFPS(fps);
         createjs.Ticker.addEventListener("tick", tick);
       }
-
-      var time = 0;
 
       function tick(event){
 
@@ -311,7 +316,10 @@
         stage.update();
       }
 
-
+      function addWeight(w){
+        w.index = weights.length;
+        weights.push(w);
+      }
 
       function setupWeightsAndSprings(){
 
@@ -333,14 +341,14 @@
           var xs = 0.03;
           var x = 0.1-xs;
           //           createCylinderWeight(mass, density, WHRatio, x, y, text, hideMass, color)
-          weights.push(createCylinderWeight(0.02, densityOfSteel, 0.7, x+=xs, 1, "", false, colorWeightBlue));
-          weights.push(createCylinderWeight(0.05, densityOfSteel, 0.7, x+=xs, 1, "", false, colorWeightRed));
-          weights.push(createCylinderWeight(0.1, densityOfSteel, 0.7, x+=xs, 1, "", false, colorWeightMagenta));
-          weights.push(createCylinderWeight(0.25, densityOfSteel, 0.7, x+=xs, 1, "", false, colorWeightYellow));
-          weights.push(createCylinderWeight(0.5, densityOfSteel, 0.7, x+=xs, 1, "", false, colorWeightLightGray));
-          weights.push(createCylinderWeight(0.75, densityOfSteel, 0.7, x+=xs, 1, "", false, colorWeightLightGray));
-          weights.push(createCylinderWeight(1.0, densityOfSteel, 0.7, x+=xs, 1, "", false, colorWeightLightGray));
-          weights.push(createCylinderWeight(0.3, densityOfAluminium, 0.7, x+=xs, 1, "?", true, colorWeightGreen));
+          addWeight(createCylinderWeight(0.02, densityOfSteel, 0.7, x+=xs, 1, "", false, colorWeightBlue));
+          addWeight(createCylinderWeight(0.05, densityOfSteel, 0.7, x+=xs, 1, "", false, colorWeightRed));
+          addWeight(createCylinderWeight(0.1, densityOfSteel, 0.7, x+=xs, 1, "", false, colorWeightMagenta));
+          addWeight(createCylinderWeight(0.25, densityOfSteel, 0.7, x+=xs, 1, "", false, colorWeightYellow));
+          addWeight(createCylinderWeight(0.5, densityOfSteel, 0.7, x+=xs, 1, "", false, colorWeightLightGray));
+          addWeight(createCylinderWeight(0.75, densityOfSteel, 0.7, x+=xs, 1, "", false, colorWeightLightGray));
+          addWeight(createCylinderWeight(1.0, densityOfSteel, 0.7, x+=xs, 1, "", false, colorWeightLightGray));
+          addWeight(createCylinderWeight(0.3, densityOfAluminium, 0.7, x+=xs, 1, "?", true, colorWeightGreen));
 
         }
       }
@@ -364,6 +372,12 @@
 
       function saveToState(){
         var state = {};
+        state.c = {
+          g:gravityAcc,
+          p:pixelsPerMeter,
+          a:attachDistance,
+          l:springLoops
+        }
         state.w = [];
         state.s = [];
         for(var i = 0; i < weights.length; i++){
@@ -385,19 +399,32 @@
           ss.l = springs[i].newton.relaxedLength;
           ss.x = springs[i].x / pixelsPerMeter;
           ss.y = springs[i].y / pixelsPerMeter;
+          if(springs[i].newton.attached){
+            ss.a = springs[i].newton.attached.index;
+          }else{
+            ss.a = null;
+          }
           state.s.push(ss);
         }
         return state;
       }
 
       function loadFromState(state){
+        gravityAcc = state.c.g;
+        pixelsPerMeter = state.c.p;
+        attachDistance = state.c.a;
+        springLoops = state.c.l;
         for(var i = 0; i < state.w.length; i++){
           var sw = state.w[i];
-          weights.push(createWeight(sw.m, sw.x, sw.y, sw.w, sw.h, sw.n, sw.hm, sw.c));
+          addWeight(createWeight(sw.m, sw.x, sw.y, sw.w, sw.h, sw.n, sw.hm, sw.c));
         }
         for(var i = 0; i < state.s.length; i++){
           var ss = state.s[i];
-          springs.push(createSpring(ss.k, ss.d, ss.x, ss.y, ss.l));
+          var sp = createSpring(ss.k, ss.d, ss.x, ss.y, ss.l);
+          if(ss.a != null){
+            attachToSpring(weights[ss.a], sp);
+          }
+          springs.push(sp);
         }
       }
 
