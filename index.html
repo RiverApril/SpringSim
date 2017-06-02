@@ -260,24 +260,18 @@
         }
         grid.graphics.endStroke().beginStroke(gridColorSub);
         for (var i = 0; i <= height; i += pixelsPerMeter/100*5) {
-          grid.graphics.mt(0, i).lt(width, i);
+          grid.graphics.mt(20, i).lt(50, i);
           var numL = new createjs.Text(Math.round(i/pixelsPerMeter*100)+" cm", "14px Arial", gridColorMain);
           numL.textAlign = "left";
           numL.textBaseline = "top";
           numL.x = 5;
           numL.y = i;
           stage.addChild(numL);
-
-          var numR = new createjs.Text(Math.round(i/pixelsPerMeter*100)+" cm", "14px Arial", gridColorMain);
-          numR.textAlign = "right";
-          numR.textBaseline = "top";
-          numR.x = width-5;
-          numR.y = height-i;
-          stage.addChild(numR);
         }
         for (var i = 0; i <= height; i += pixelsPerMeter/100*1) {
           grid.graphics.mt(0, i).lt(20, i);
         }
+        grid.graphics.mt(50, height).lt(width, height);
         stage.addChild(grid);
         stage.setChildIndex(grid,0);
       }
